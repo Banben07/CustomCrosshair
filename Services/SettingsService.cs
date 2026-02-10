@@ -62,6 +62,8 @@ public sealed class SettingsService
             OverlayEnabled = true,
             SelectedProfileIndex = 0,
             TargetMonitorIndex = 0,
+            StartWithWindows = false,
+            MinimizeToTray = true,
             ToggleOverlayHotkey = HotkeyBinding.DefaultToggle(),
             CycleProfileHotkey = HotkeyBinding.DefaultCycle(),
             Profiles = [.. ProfileFactory.CreatePresetPack()]

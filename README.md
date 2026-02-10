@@ -8,6 +8,9 @@ Windows desktop crosshair overlay for FPS games that do not offer custom crossha
 - Profile system (add, duplicate, delete, reset defaults)
 - Presets inspired by common `CS` and `VALORANT` style setups
 - Real-time preview and live update
+- Minimize to system tray with tray menu (restore/toggle/exit)
+- Optional auto-start with Windows (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`)
+- Share-code import/export for crosshair profiles
 - Extensive customization:
   - line length, line thickness, gap
   - center dot and dot size
@@ -36,6 +39,52 @@ Build and run:
 dotnet build
 dotnet run
 ```
+
+## Share Code
+
+- Export: click `Copy current code` in the app.
+- Import: click `Import from clipboard` or `Paste code...`.
+- Imported profiles are sanitized and clamped to safe value ranges.
+
+## Publish (Single-file EXE)
+
+Build a release single-file executable:
+
+```powershell
+dotnet publish CrossfireCrosshair.csproj `
+  -c Release `
+  -r win-x64 `
+  --self-contained true `
+  -p:PublishSingleFile=true `
+  -p:IncludeNativeLibrariesForSelfExtract=true `
+  -p:PublishTrimmed=false `
+  -o artifacts/win-x64
+```
+
+Or use the provided script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\publish-win-x64.ps1
+```
+
+## GitHub Actions CI/CD
+
+Workflow file: `.github/workflows/windows-build.yml`
+
+It does:
+
+- Restore + build on `push`, `pull_request`, and manual trigger.
+- Publish `win-x64` single-file release package.
+- Upload `.zip` + `.sha256` as build artifacts.
+- Create GitHub Release automatically when tag matches `v*`.
+- Optionally sign the executable when signing secrets are configured.
+
+### Optional Code-signing Secrets
+
+Set these repository secrets to enable signing in CI:
+
+- `WINDOWS_PFX_BASE64`: base64-encoded `.pfx` certificate content
+- `WINDOWS_PFX_PASSWORD`: certificate password
 
 ## Security and Compliance Notes
 

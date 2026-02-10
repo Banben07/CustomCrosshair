@@ -17,7 +17,8 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Column="0">
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
             <GroupBox Header="Profiles" Margin="0,0,0,10">
                 <DockPanel Margin="8">
                     <StackPanel DockPanel.Dock="Bottom"
@@ -58,6 +59,31 @@
                 </StackPanel>
             </GroupBox>
 
+            <GroupBox Header="Startup &amp; Tray" Margin="0,0,0,10">
+                <StackPanel Margin="8">
+                    <CheckBox Content="Start with Windows (current user)"
+                              Margin="0,0,0,8"
+                              IsChecked="{Binding StartWithWindows, Mode=TwoWay}" />
+                    <CheckBox Content="Minimize to system tray"
+                              Margin="0,0,0,8"
+                              IsChecked="{Binding MinimizeToTray, Mode=TwoWay}" />
+                    <WrapPanel>
+                        <Button Content="Hide to tray now" Width="140" Click="HideToTray_Click" />
+                    </WrapPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Share Code" Margin="0,0,0,10">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <Button Content="Copy current code" Width="132" Margin="0,0,8,0" Click="CopyShareCode_Click" />
+                        <Button Content="Import from clipboard" Width="148" Margin="0,0,8,0" Click="ImportShareCodeFromClipboard_Click" />
+                        <Button Content="Paste code..." Width="96" Click="ImportShareCodeManual_Click" />
+                    </WrapPanel>
+                    <TextBlock x:Name="ShareCodeStatusText" TextWrapping="Wrap" />
+                </StackPanel>
+            </GroupBox>
+
             <GroupBox Header="Global Hotkeys">
                 <StackPanel Margin="8">
                     <TextBlock Text="Toggle Overlay" FontWeight="SemiBold" />
@@ -92,7 +118,8 @@
                            TextWrapping="Wrap"
                            Text="This tool uses only transparent overlay + global hotkeys. It does not inject into game processes, read game memory, or install drivers." />
             </GroupBox>
-        </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
 
         <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
             <StackPanel>

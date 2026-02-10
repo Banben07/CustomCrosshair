@@ -18,11 +18,17 @@ public partial class MainWindow : Window
     private const int CycleProfileHotkeyId = 0xA112;
 
     private readonly SettingsService _settingsService;
+    private readonly AutoStartService _autoStartService;
+    private readonly ProfileShareService _profileShareService;
     private readonly OverlayWindow _overlayWindow;
+    private readonly Forms.NotifyIcon _notifyIcon;
     private readonly DispatcherTimer _saveTimer;
     private readonly Dictionary<CrosshairProfile, PropertyChangedEventHandler> _profileSubscriptions = [];
     private HwndSource? _hwndSource;
     private string _hotkeyWarning = string.Empty;
+    private string _startupWarning = string.Empty;
+    private bool _isApplyingStartupSetting;
+    private bool _trayHintShown;
 
     public ObservableCollection<Key> AvailableKeys { get; } = [];
     public ObservableCollection<MonitorOption> AvailableMonitors { get; } = [];
@@ -34,10 +40,15 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _settingsService = new SettingsService();
+        _autoStartService = new AutoStartService("CrossfireCrosshair");
+        _profileShareService = new ProfileShareService();
+
         AppSettings settings = _settingsService.Load();
         EnsureSettingsSanity(settings);
+        settings.StartWithWindows = _autoStartService.IsEnabled();
         DataContext = settings;
 
+        _notifyIcon = CreateNotifyIcon();
         _overlayWindow = new OverlayWindow();
 
         BuildKeyList();
@@ -53,6 +64,7 @@ public partial class MainWindow : Window
 
         Loaded += OnLoaded;
         Closing += OnClosing;
+        StateChanged += OnWindowStateChanged;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -65,6 +77,7 @@ public partial class MainWindow : Window
         ApplyOverlayState();
         UpdateHotkeySummary();
         UpdateStatusText();
+        ShareCodeStatusText.Text = "Copy current profile as a share code, then import it on another machine.";
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -78,7 +91,51 @@ public partial class MainWindow : Window
         }
 
         _settingsService.Save(Settings);
+        _notifyIcon.Visible = false;
+        _notifyIcon.Dispose();
         _overlayWindow.Close();
+    }
+
+    private Forms.NotifyIcon CreateNotifyIcon()
+    {
+        Forms.NotifyIcon notifyIcon = new()
+        {
+            Text = "CrossfireCrosshair",
+            Icon = SystemIcons.Application,
+            Visible = true
+        };
+
+        Forms.ContextMenuStrip menu = new();
+        Forms.ToolStripMenuItem openItem = new("Open Control Panel");
+        openItem.Click += (_, _) => Dispatcher.Invoke(RestoreFromTray);
+        menu.Items.Add(openItem);
+
+        Forms.ToolStripMenuItem toggleOverlayItem = new("Toggle Overlay");
+        toggleOverlayItem.Click += (_, _) => Dispatcher.Invoke(() => Settings.OverlayEnabled = !Settings.OverlayEnabled);
+        menu.Items.Add(toggleOverlayItem);
+
+        menu.Items.Add(new Forms.ToolStripSeparator());
+
+        Forms.ToolStripMenuItem exitItem = new("Exit");
+        exitItem.Click += (_, _) => Dispatcher.Invoke(() => Close());
+        menu.Items.Add(exitItem);
+
+        notifyIcon.ContextMenuStrip = menu;
+        notifyIcon.DoubleClick += (_, _) => Dispatcher.Invoke(RestoreFromTray);
+        return notifyIcon;
+    }
+
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        if (!Settings.MinimizeToTray)
+        {
+            return;
+        }
+
+        if (WindowState == WindowState.Minimized)
+        {
+            HideToTray(showHint: true);
+        }
     }
 
     private void AttachSettingsHandlers(AppSettings settings)
@@ -102,6 +159,11 @@ public partial class MainWindow : Window
             EnsureSelectedProfileIndex();
             ApplyOverlayState();
             UpdateStatusText();
+        }
+
+        if (e.PropertyName == nameof(AppSettings.StartWithWindows) && !_isApplyingStartupSetting)
+        {
+            ApplyStartupSetting();
         }
 
         QueueSave();
@@ -346,13 +408,56 @@ public partial class MainWindow : Window
     private void UpdateStatusText()
     {
         string overlayState = Settings.OverlayEnabled ? "Overlay: enabled" : "Overlay: disabled";
-        if (string.IsNullOrWhiteSpace(_hotkeyWarning))
+        List<string> lines = [overlayState];
+        if (!string.IsNullOrWhiteSpace(_hotkeyWarning))
         {
-            StatusText.Text = overlayState;
+            lines.Add(_hotkeyWarning);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_startupWarning))
+        {
+            lines.Add(_startupWarning);
+        }
+
+        StatusText.Text = string.Join("\n", lines);
+    }
+
+    private void ApplyStartupSetting()
+    {
+        if (_autoStartService.TrySetEnabled(Settings.StartWithWindows, out string? error))
+        {
+            _startupWarning = string.Empty;
+            UpdateStatusText();
             return;
         }
 
-        StatusText.Text = $"{overlayState}\n{_hotkeyWarning}";
+        _startupWarning = $"Startup setting failed: {error}";
+        _isApplyingStartupSetting = true;
+        Settings.StartWithWindows = _autoStartService.IsEnabled();
+        _isApplyingStartupSetting = false;
+        UpdateStatusText();
+    }
+
+    private void HideToTray(bool showHint)
+    {
+        Hide();
+        ShowInTaskbar = false;
+
+        if (showHint && !_trayHintShown)
+        {
+            _notifyIcon.BalloonTipTitle = "CrossfireCrosshair";
+            _notifyIcon.BalloonTipText = "App is running in tray. Double-click the tray icon to restore.";
+            _notifyIcon.ShowBalloonTip(1800);
+            _trayHintShown = true;
+        }
+    }
+
+    private void RestoreFromTray()
+    {
+        Show();
+        ShowInTaskbar = true;
+        WindowState = WindowState.Normal;
+        Activate();
     }
 
     private void CycleProfile()
@@ -453,6 +558,73 @@ public partial class MainWindow : Window
     {
         RegisterHotkeys();
         UpdateHotkeySummary();
+    }
+
+    private void HideToTray_Click(object sender, RoutedEventArgs e)
+    {
+        HideToTray(showHint: true);
+    }
+
+    private void CopyShareCode_Click(object sender, RoutedEventArgs e)
+    {
+        if (CurrentProfile is null)
+        {
+            ShareCodeStatusText.Text = "No profile selected.";
+            return;
+        }
+
+        try
+        {
+            string code = _profileShareService.Export(CurrentProfile);
+            Clipboard.SetText(code);
+            ShareCodeStatusText.Text = $"Share code copied for profile: {CurrentProfile.Name}";
+        }
+        catch (Exception ex)
+        {
+            ShareCodeStatusText.Text = $"Failed to copy share code: {ex.Message}";
+        }
+    }
+
+    private void ImportShareCodeFromClipboard_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string code = Clipboard.GetText();
+            ImportShareCode(code);
+        }
+        catch (Exception ex)
+        {
+            ShareCodeStatusText.Text = $"Failed to read clipboard: {ex.Message}";
+        }
+    }
+
+    private void ImportShareCodeManual_Click(object sender, RoutedEventArgs e)
+    {
+        ShareCodeInputDialog dialog = new()
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        ImportShareCode(dialog.ShareCode);
+    }
+
+    private void ImportShareCode(string code)
+    {
+        if (!_profileShareService.TryImport(code, out CrosshairProfile? imported, out string? error) || imported is null)
+        {
+            ShareCodeStatusText.Text = $"Import failed: {error}";
+            return;
+        }
+
+        imported.Name = BuildUniqueProfileName(imported.Name);
+        Settings.Profiles.Add(imported);
+        Settings.SelectedProfileIndex = Settings.Profiles.Count - 1;
+        ShareCodeStatusText.Text = $"Imported profile: {imported.Name}";
     }
 
     private void PickMainColor_Click(object sender, RoutedEventArgs e)

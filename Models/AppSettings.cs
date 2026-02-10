@@ -7,6 +7,8 @@ public sealed class AppSettings : ObservableObject
     private bool _overlayEnabled = true;
     private int _selectedProfileIndex;
     private int _targetMonitorIndex;
+    private bool _startWithWindows;
+    private bool _minimizeToTray = true;
     private HotkeyBinding _toggleOverlayHotkey = HotkeyBinding.DefaultToggle();
     private HotkeyBinding _cycleProfileHotkey = HotkeyBinding.DefaultCycle();
 
@@ -28,6 +30,18 @@ public sealed class AppSettings : ObservableObject
     {
         get => _targetMonitorIndex;
         set => SetProperty(ref _targetMonitorIndex, value);
+    }
+
+    public bool StartWithWindows
+    {
+        get => _startWithWindows;
+        set => SetProperty(ref _startWithWindows, value);
+    }
+
+    public bool MinimizeToTray
+    {
+        get => _minimizeToTray;
+        set => SetProperty(ref _minimizeToTray, value);
     }
 
     public HotkeyBinding ToggleOverlayHotkey
