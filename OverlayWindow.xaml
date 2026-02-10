@@ -1,0 +1,20 @@
+<Window x:Class="CrossfireCrosshair.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:CrossfireCrosshair.Controls"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="Transparent"
+        AllowsTransparency="True"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False"
+        Title="Crosshair Overlay">
+    <Grid IsHitTestVisible="False">
+        <controls:CrosshairPreviewControl x:Name="OverlayCrosshair"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          IsHitTestVisible="False" />
+    </Grid>
+</Window>

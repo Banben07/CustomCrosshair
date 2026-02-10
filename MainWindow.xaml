@@ -1,0 +1,304 @@
+<Window x:Class="CrossfireCrosshair.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:CrossfireCrosshair.Controls"
+        mc:Ignorable="d"
+        Title="Crosshair Overlay Tool"
+        Height="760"
+        Width="1120"
+        MinHeight="680"
+        MinWidth="980">
+    <Grid Margin="14">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="315" />
+            <ColumnDefinition Width="14" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0">
+            <GroupBox Header="Profiles" Margin="0,0,0,10">
+                <DockPanel Margin="8">
+                    <StackPanel DockPanel.Dock="Bottom"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,8,0,0">
+                        <Button Content="Add" Width="64" Margin="0,0,6,0" Click="AddProfile_Click" />
+                        <Button Content="Copy" Width="64" Margin="0,0,6,0" Click="DuplicateProfile_Click" />
+                        <Button Content="Delete" Width="64" Click="DeleteProfile_Click" />
+                    </StackPanel>
+                    <ListBox x:Name="ProfilesList"
+                             MinHeight="250"
+                             DisplayMemberPath="Name"
+                             ItemsSource="{Binding Profiles}"
+                             SelectedIndex="{Binding SelectedProfileIndex, Mode=TwoWay}" />
+                </DockPanel>
+            </GroupBox>
+
+            <GroupBox Header="Overlay" Margin="0,0,0,10">
+                <StackPanel Margin="8">
+                    <CheckBox Content="Enable overlay"
+                              IsChecked="{Binding OverlayEnabled, Mode=TwoWay}"
+                              Margin="0,0,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Monitor:" VerticalAlignment="Center" />
+                        <ComboBox Margin="8,0,0,0"
+                                  Width="220"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValuePath="Index"
+                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=AvailableMonitors}"
+                                  SelectedValue="{Binding TargetMonitorIndex, Mode=TwoWay}" />
+                    </StackPanel>
+                    <WrapPanel Margin="0,0,0,8">
+                        <Button Content="Apply monitor" Width="120" Margin="0,0,8,0" Click="ApplyMonitor_Click" />
+                        <Button Content="Reset presets" Width="120" Click="ResetPresets_Click" />
+                    </WrapPanel>
+                    <TextBlock x:Name="StatusText" Foreground="#9C4D00" TextWrapping="Wrap" />
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Global Hotkeys">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Toggle Overlay" FontWeight="SemiBold" />
+                    <WrapPanel Margin="0,4,0,8">
+                        <CheckBox Content="Ctrl" Margin="0,0,8,0" IsChecked="{Binding ToggleOverlayHotkey.Ctrl, Mode=TwoWay}" />
+                        <CheckBox Content="Alt" Margin="0,0,8,0" IsChecked="{Binding ToggleOverlayHotkey.Alt, Mode=TwoWay}" />
+                        <CheckBox Content="Shift" Margin="0,0,8,0" IsChecked="{Binding ToggleOverlayHotkey.Shift, Mode=TwoWay}" />
+                        <CheckBox Content="Win" Margin="0,0,8,0" IsChecked="{Binding ToggleOverlayHotkey.Win, Mode=TwoWay}" />
+                        <ComboBox Width="92"
+                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=AvailableKeys}"
+                                  SelectedItem="{Binding ToggleOverlayHotkey.Key, Mode=TwoWay}" />
+                    </WrapPanel>
+
+                    <TextBlock Text="Cycle Profile" FontWeight="SemiBold" />
+                    <WrapPanel Margin="0,4,0,8">
+                        <CheckBox Content="Ctrl" Margin="0,0,8,0" IsChecked="{Binding CycleProfileHotkey.Ctrl, Mode=TwoWay}" />
+                        <CheckBox Content="Alt" Margin="0,0,8,0" IsChecked="{Binding CycleProfileHotkey.Alt, Mode=TwoWay}" />
+                        <CheckBox Content="Shift" Margin="0,0,8,0" IsChecked="{Binding CycleProfileHotkey.Shift, Mode=TwoWay}" />
+                        <CheckBox Content="Win" Margin="0,0,8,0" IsChecked="{Binding CycleProfileHotkey.Win, Mode=TwoWay}" />
+                        <ComboBox Width="92"
+                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=AvailableKeys}"
+                                  SelectedItem="{Binding CycleProfileHotkey.Key, Mode=TwoWay}" />
+                    </WrapPanel>
+
+                    <Button Content="Re-register hotkeys" Width="160" Click="ReregisterHotkeys_Click" />
+                    <TextBlock x:Name="HotkeyText" Margin="0,8,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Security Notes" Margin="0,10,0,0">
+                <TextBlock Margin="8"
+                           TextWrapping="Wrap"
+                           Text="This tool uses only transparent overlay + global hotkeys. It does not inject into game processes, read game memory, or install drivers." />
+            </GroupBox>
+        </StackPanel>
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Preview" Margin="0,0,0,10">
+                    <Border Margin="8"
+                            Padding="8"
+                            CornerRadius="6"
+                            Background="#111111">
+                        <Grid MinHeight="330">
+                            <controls:CrosshairPreviewControl Profile="{Binding ElementName=ProfilesList, Path=SelectedItem}" />
+                        </Grid>
+                    </Border>
+                </GroupBox>
+
+                <GroupBox Header="Style Basics" Margin="0,0,0,10">
+                    <Grid Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="56" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Profile Name" />
+                        <TextBox Grid.Row="0"
+                                 Grid.Column="1"
+                                 Grid.ColumnSpan="2"
+                                 Margin="0,2,0,8"
+                                 Text="{Binding ElementName=ProfilesList, Path=SelectedItem.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Line Length" />
+                        <Slider Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="0"
+                                Maximum="30"
+                                TickFrequency="0.5"
+                                IsSnapToTickEnabled="False"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.LineLength, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.LineLength, StringFormat=F1}" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Line Thickness" />
+                        <Slider Grid.Row="2"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="0.5"
+                                Maximum="8"
+                                TickFrequency="0.1"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.LineThickness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.LineThickness, StringFormat=F1}" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Center Gap" />
+                        <Slider Grid.Row="3"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="-10"
+                                Maximum="25"
+                                TickFrequency="0.5"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.Gap, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.Gap, StringFormat=F1}" />
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="Center Dot Size" />
+                        <Slider Grid.Row="4"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="0"
+                                Maximum="12"
+                                TickFrequency="0.5"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.DotSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.DotSize, StringFormat=F1}" />
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Text="Outline Thickness" />
+                        <Slider Grid.Row="5"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="0"
+                                Maximum="5"
+                                TickFrequency="0.1"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.OutlineThickness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="5"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.OutlineThickness, StringFormat=F1}" />
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Text="Horizontal Offset" />
+                        <Slider Grid.Row="6"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="-120"
+                                Maximum="120"
+                                TickFrequency="1"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.OffsetX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="6"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.OffsetX, StringFormat=F0}" />
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Text="Vertical Offset" />
+                        <Slider Grid.Row="7"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="-120"
+                                Maximum="120"
+                                TickFrequency="1"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.OffsetY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="7"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.OffsetY, StringFormat=F0}" />
+
+                        <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Text="Dynamic Spread" />
+                        <Slider Grid.Row="8"
+                                Grid.Column="1"
+                                Margin="0,2,8,8"
+                                Minimum="0"
+                                Maximum="20"
+                                TickFrequency="0.5"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.DynamicSpread, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="8"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.DynamicSpread, StringFormat=F1}" />
+
+                        <TextBlock Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Text="Opacity" />
+                        <Slider Grid.Row="9"
+                                Grid.Column="1"
+                                Margin="0,2,8,0"
+                                Minimum="0.1"
+                                Maximum="1.0"
+                                TickFrequency="0.01"
+                                Value="{Binding ElementName=ProfilesList, Path=SelectedItem.Opacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="9"
+                                   Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=ProfilesList, Path=SelectedItem.Opacity, StringFormat=F2}" />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Display Rules" Margin="0,0,0,10">
+                    <WrapPanel Margin="10">
+                        <CheckBox Margin="0,0,16,8"
+                                  Content="Show Lines"
+                                  IsChecked="{Binding ElementName=ProfilesList, Path=SelectedItem.ShowLines, Mode=TwoWay}" />
+                        <CheckBox Margin="0,0,16,8"
+                                  Content="Show Center Dot"
+                                  IsChecked="{Binding ElementName=ProfilesList, Path=SelectedItem.ShowCenterDot, Mode=TwoWay}" />
+                        <CheckBox Margin="0,0,16,8"
+                                  Content="Show Outline"
+                                  IsChecked="{Binding ElementName=ProfilesList, Path=SelectedItem.ShowOutline, Mode=TwoWay}" />
+                        <CheckBox Margin="0,0,16,8"
+                                  Content="T-Style (hide top)"
+                                  IsChecked="{Binding ElementName=ProfilesList, Path=SelectedItem.TStyle, Mode=TwoWay}" />
+                    </WrapPanel>
+                </GroupBox>
+
+                <GroupBox Header="Colors">
+                    <Grid Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="110" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Main Color (hex)" />
+                        <TextBox Grid.Row="0"
+                                 Grid.Column="1"
+                                 Margin="0,0,8,8"
+                                 Text="{Binding ElementName=ProfilesList, Path=SelectedItem.ColorHex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Row="0" Grid.Column="2" Margin="0,0,0,8" Content="Pick..." Click="PickMainColor_Click" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Outline Color (hex)" />
+                        <TextBox Grid.Row="1"
+                                 Grid.Column="1"
+                                 Margin="0,0,8,0"
+                                 Text="{Binding ElementName=ProfilesList, Path=SelectedItem.OutlineColorHex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Row="1" Grid.Column="2" Content="Pick..." Click="PickOutlineColor_Click" />
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
