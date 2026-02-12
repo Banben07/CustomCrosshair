@@ -126,4 +126,3 @@ powershell -ExecutionPolicy Bypass -File .\scripts\publish-win-x64.ps1
 2. 保持依赖项最简化。
 3. **避免**使用任何加壳工具（Obfuscators/Packers）。
 4. 使用可信的数字证书对生成的二进制文件进行签名。
-5. 发布每个版本时同时公开 Checksum 校验和及更新日志。
